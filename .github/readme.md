@@ -13,7 +13,7 @@ They search for their results in a list under the names Becker, Kramer and Wolff
 2. Anja took the course algorythms. She has a better grade than student Wolff
 3. Anke did not take programming paradigms
 
-## Step 0: Create the datasets
+## Step 0: Imports
 ```py
 from solver import Model
 from sets import Set, OrderedSet
