@@ -4,10 +4,10 @@ This engine can solve logic puzzles with 1:1 correspondances between discrete se
 # [Example](../example.py)
 
 ## Task
-[taken from Question 1 of the [KIT University Computer Science Self Assessment Test](https://selbsttest.informatik.kit.edu/frontend/www/), translated into english]
+[taken from Question 1 of the [KIT University Computer Science Self Assessment Test](https://selbsttest.informatik.kit.edu/frontend/www/), translated from german]
 
 The three friends Anne, Anja and Anke visit the courses software technic, algorythms and programming paradigms 
-with varying degrees of success (1.7/2.6/3.8). (note: in Germany the grading system is from 1(best) to 6(worst))
+with varying degrees of success (1.7/2.6/3.8). (note: in Germany the grading system is from 1 (best) to 6 (worst))
 They search for their results in a list under the names Becker, Kramer and Wolff.
 1. Anne passed witha grade of 2.6
 2. Anja took the course algorythms. She has a better grade than student Wolff
