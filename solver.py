@@ -116,6 +116,8 @@ class Solver:
                         raise ArithmeticError(f'The model is not solvable since no {k} satisfies a constraint for {ss.name}')
         return Solution(self.super_sets)
 
+    def __repr__(self) -> str:
+        return '\n'.join([str(ss) for ss in self.super_sets.values()])
 
 class Solution:
     def __init__(self, super_sets: dict[str, 'SuperSet']):

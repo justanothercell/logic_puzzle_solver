@@ -5,19 +5,14 @@ RELATION_TYPES = {'eq': '==', 'ne': '!=', 'lt': '<', 'le': '<=', 'gt': '>', 'ge'
 
 class Item:
     def relation(self, other: 'Item', call: Callable, op: str):
-        # listings:
-        # left: call comparison, right: we can assume that all items in a listing are unique from another and thus are not the same
-        # a and b [comp] c where a.set != b.set and [comp] is not equality implies a != b
-        # a and b [comp] not c where a.set == b.set and [comp] is not equality implies nothing
-        # if [comp] is equality the relation is invalid
         if self.listing:
             if op == 'eq':
                 raise Exception('Cannot relate multiple items to one with equality')
-            return [*[call(item, other) for item in self.listing], *[a != b for a, b in combinations(self.listing, 2) if a.set != b.set]]
+            return [call(item, other) for item in self.listing]
         if other.listing:
             if op == 'eq':
                 raise Exception('Cannot relate multiple items to one with equality')
-            return [*[call(self, item) for item in other.listing], *[a != b for a, b in combinations(other.listing, 2) if a.set != b.set]]
+            return [call(self, item) for item in other.listing]
         if self.set == other.set:
             raise Exception(f'Cannot create constraint on two items of same set {self} {RELATION_TYPES[op]} {other}')
         return Relation(self, other, op)

@@ -1,5 +1,6 @@
-from solver import Model
-from sets import Set, OrderedSet
+import sys
+sys.path.append('..')
+from lps import Set, OrderedSet, Model
 
 # === Task ===
 # [taken from Question 1 of the KIT computer science self assessment test, translated into english (https://selbsttest.informatik.kit.edu/frontend/www/)]
@@ -7,7 +8,7 @@ from sets import Set, OrderedSet
 # with varying degrees of success (1.7/2.6/3.8). (note: in Germany the grading system is from 1(best) to 6(worst))
 # They search for their results in a list under the names Becker, Kramer and Wolff.
 #
-# 1. Anne passed witha grade of 2.6
+# 1. Anne passed witha grade of 2.6.
 # 2. Anja took the course algorythms. She has a better grade than student Wolff
 # 3. Anke did not take programming paradigms
 
@@ -32,14 +33,26 @@ model.relate(names['anja'](grades) < last_names['wolff'](grades))
 # == 3 ==
 model.relate(names['anke'] != subjects['paradigms'])
 model.relate((names['anke'] & last_names['kramer']) > grades[1.7])
-# the `and` above is a short form for the 3 following relations:
+# the `and` above is a short form for the 2 following relations:
 #model.relate(names['anke'] > grades[1.7])
 #model.relate(last_names['kramer'] > grades[1.7])
-#model.relate(names['anke'] != last_names['kramer'])
+# We can deduce that anke is not named kramer, but the machine cannot since it does not know how names work.
+# This is why we must specify this additional constraint.
+model.relate(names['anke'] != last_names['kramer'])
 
 # === Step 4: Evaluate the relations ===
 solver = model.solver()
-solution = solver.solve()
+
+# a `ValueError` is thrown if there are not enough constraints to solve the model fully
+# or the model ran for too few iterations (unlikey for small models).
+# Check whether oyur input text allows you to deduce another formal statement whcih you didnt notice before.
+# If there is a sttement error, aka no element from a set satisfies the conditions,
+# a `ArithemeticError` is thrown. This should be due to an input error by the user.
+try:
+    solution = solver.solve()
+    print(solution)
+except ValueError:
+    print(solver)
 
 print(solution)
 
