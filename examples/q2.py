@@ -9,7 +9,7 @@ from lps import Set, OrderedSet, Model
 #
 # 1. In department A the algorythms are developed. This department has less time than at least one other department.
 # 2. Department C has to finish its work til January.
-# 3. Neither department C nor porgrammer Schmitz work with databases.
+# 3. Neither department C nor programmer Schmitz work with databases.
 # 4. Programmer Müller has to be finished in May.
 
 # === Step 1: Create the datasets ===
