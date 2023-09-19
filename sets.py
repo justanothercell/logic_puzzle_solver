@@ -1,48 +1,72 @@
+from typing import Callable, Any
+from itertools import combinations
+
+RELATION_TYPES = {'eq': '==', 'ne': '!=', 'lt': '<', 'le': '<=', 'gt': '>', 'ge': '>='}
+
 class Item:
-    def __init__(self, set_: 'Set', value):
+    def relation(self, other: 'Item', call: Callable, op: str):
+        # listings:
+        # left: call comparison, right: we can assume that all items in a listing are unique from another and thus are not the same
+        # a and b [comp] c where a.set != b.set and [comp] is not equality implies a != b
+        # a and b [comp] not c where a.set == b.set and [comp] is not equality implies nothing
+        # if [comp] is equality the relation is invalid
+        if self.listing:
+            if op == 'eq':
+                raise Exception('Cannot relate multiple items to one with equality')
+            return [*[call(item, other) for item in self.listing], *[a != b for a, b in combinations(self.listing, 2) if a.set != b.set]]
+        if other.listing:
+            if op == 'eq':
+                raise Exception('Cannot relate multiple items to one with equality')
+            return [*[call(self, item) for item in other.listing], *[a != b for a, b in combinations(other.listing, 2) if a.set != b.set]]
+        if self.set == other.set:
+            raise Exception(f'Cannot create constraint on two items of same set {self} {RELATION_TYPES[op]} {other}')
+        return Relation(self, other, op)
+        
+    def __init__(self, set_: 'Set', value, listing = None):
         self.set = set_
         self.value = value
+        self.listing = listing
     
     def __call__(self, foreign: 'Set') -> 'ForeignSet':
         return ForeignSet(self, foreign)
     
+    def __and__(self, other: 'Set') -> 'Set':
+        listing = []
+        if self.listing:
+            listing += self.listing
+        else:
+            listing.append(self)
+        if other.listing:
+            listing += other.listing
+        else:
+            listing.append(other)
+        return Item(None, None, listing=listing)
+    
     def __eq__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create equality constraint on two items of same set {self} == {other}')
-        return Relation(self, other, 'eq')
+        return self.relation(other, lambda a, b: a == b, 'eq')
     
     def __ne__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create inequality constraint on two items of same set {self} != {other}')
-        return Relation(self, other, 'ne')
+        return self.relation(other, lambda a, b: a != b, 'ne')
     
     def __lt__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create comparative constraint on two items of same set {self} < {other}')
         if not isinstance(other.set, OrderedSet):
             raise Exception(f'Cannot create comparative constraint on an unordered right hand side {self} < {other}')
-        return Relation(self, other, 'lt')
+        return self.relation(other, lambda a, b: a < b, 'lt')
     
     def __le__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create comparative constraint on two items of same set {self} <= {other}')
         if not isinstance(other.set, OrderedSet):
             raise Exception(f'Cannot create comparative constraint on an unordered right hand side {self} <= {other}')
-        return Relation(self, other, 'le')
+        return self.relation(other, lambda a, b: a <= b, 'le')
     
     def __gt__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create comparative constraint on two items of same set {self} > {other}')
         if not isinstance(other.set, OrderedSet):
             raise Exception(f'Cannot create comparative constraint on an unordered right hand side {self} > {other}')
-        return Relation(self, other, 'gt')
+        return self.relation(other, lambda a, b: a > b, 'gt')
     
     def __ge__(self, other: 'Item') -> 'Relation':
-        if self.set == other.set:
-            raise Exception(f'Cannot create comparative constraint on two items of same set {self} >= {other}')
         if not isinstance(other.set, OrderedSet):
             raise Exception(f'Cannot create comparative constraint on an unordered right hand side {self} >= {other}')
-        return Relation(self, other, 'ge')
+        return self.relation(other, lambda a, b: a >= b, 'ge')
 
     def __repr__(self) -> str:
         return f'{self.set.name}[{self.value}]'
@@ -53,37 +77,49 @@ class ForeignSet:
         self.item = item
         self.set = set_
 
-    def __eq__(self, other: 'ForeignSet') -> 'Relation':
+    def __eq__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item == self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create equality constraint on two different foreign sets {self} == {other}')
         # since no item may be shared, this actually means that the two native items must correspond, resulting in a normal item equality (immediate relation)
         return Relation(self.item, other.item, 'eq')
     
-    def __ne__(self, other: 'ForeignSet') -> 'Relation':
+    def __ne__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item != self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create equality constraint on two different foreign sets {self} != {other}')
         # since no item may be shared, this actually means that the two native items must be disjoint, resulting in a normal item inequality (immediate relation)
         return Relation(self.item, other.item, 'ne')
 
-    def __lt__(self, other: 'ForeignSet') -> 'Relation':
+    def __lt__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item < self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create comparative constraint on two different foreign sets {self} < {other}')
         # since no item may be shared, this additionally means that the two native items must be disjoint, resulting in an additional item inequality (immediate relation)
         return [Relation(self, other, 'lt'), Relation(self.item, other.item, 'ne')]
     
-    def __le__(self, other: 'ForeignSet') -> 'Relation':
+    def __le__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item <= self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create comparative constraint on two different foreign sets {self} <= {other}')
         # since no item may be shared, this additionally means that the two native items must be disjoint, resulting in an additional item inequality (immediate relation)
         return [Relation(self, other, 'le'), Relation(self.item, other.item, 'ne')]
     
-    def __gt__(self, other: 'ForeignSet') -> 'Relation':
+    def __gt__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item > self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create comparative constraint on two different foreign sets {self} > {other}')
         # since no item may be shared, this additionally means that the two native items must be disjoint, resulting in an additional item inequality (immediate relation)
         return [Relation(self, other, 'gt'), Relation(self.item, other.item, 'ne')]
     
-    def __ge__(self, other: 'ForeignSet') -> 'Relation':
+    def __ge__(self, other: 'ForeignSet|Any') -> 'Relation':
+        if not isinstance(other, ForeignSet):
+            return self.item >= self.set[other]
         if self.set != other.set:
             raise Exception(f'Cannot create comparative constraint on two different foreign sets {self} >= {other}')
         # since no item may be shared, this additionally means that the two native items must be disjoint, resulting in an additional item inequality (immediate relation)
@@ -91,8 +127,6 @@ class ForeignSet:
 
     def __repr__(self) -> str:
         return f'{self.item.set.name}[{self.item.value}]({self.set.name})'
-
-RELATION_TYPES = {'eq': '==', 'ne': '!=', 'lt': '<', 'le': '<=', 'gt': '>', 'ge': '>='}
 
 class Relation:
     def __init__(self, a: Item, b: Item, ty: str) -> None:
@@ -112,28 +146,30 @@ class Relation:
             set_ab.append(self.b.value)
             super_sets[self.b.set.name].foreign_sets[self.b.value].foreigns[self.a.set.name] = [self.a.value]
         elif self.ty == 'ne':
-            set_ab.remove(self.b.value)
-            super_sets[self.b.set.name].foreign_sets[self.b.value].foreigns[self.a.set.name].remove(self.a.value)
+            if self.b.value in set_ab:
+                set_ab.remove(self.b.value)
+            if self.a.value in super_sets[self.b.set.name].foreign_sets[self.b.value].foreigns[self.a.set.name]:
+                super_sets[self.b.set.name].foreign_sets[self.b.value].foreigns[self.a.set.name].remove(self.a.value)
         elif self.ty == 'gt':
-            i = set_ab.index(self.b.value)
-            for _ in range(i + 1):
+            while set_ab[0] <= self.b.value:
                 k = set_ab.pop(0)
-                super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
+                if k in super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name]:
+                    super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
         elif self.ty == 'ge':
-            i = set_ab.index(self.b.value)
-            for _ in range(i):
+            while set_ab[0] < self.b.value:
                 k = set_ab.pop(0)
-                super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
+                if k in super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name]:
+                    super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
         elif self.ty == 'lt':
-            i = set_ab.index(self.b.value)
-            for _ in range(len(set_ab) - i):
+            while set_ab[-1] >= self.b.value:
                 k = set_ab.pop()
-                super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
+                if k in super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name]:
+                    super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
         elif self.ty == 'le':
-            i = set_ab.index(self.b.value)
-            for _ in range(len(set_ab) - i - 1):
+            while set_ab[-1] > self.b.value:
                 k = set_ab.pop()
-                super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
+                if k in super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name]:
+                    super_sets[self.b.set.name].foreign_sets[k].foreigns[self.a.set.name].remove(self.a.value)
         else:
             Exception(f'Invalid or unreachable immediate relation type `{self.ty}`')
     
