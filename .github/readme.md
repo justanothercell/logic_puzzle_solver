@@ -13,6 +13,7 @@ They search for their results in a list under the names Becker, Kramer and Wolff
 2. Anja took the course algorythms. She has a better grade than student Wolff
 3. Anke did not take programming paradigms
 
+## Step 0: Create the datasets
 ```py
 from solver import Model
 from sets import Set, OrderedSet
@@ -44,7 +45,7 @@ model.relate(names['anja'](grades) < last_names['wolff'](grades))
 # == 3 ==
 model.relate(names['anke'] != subjects['paradigms'])
 model.relate((names['anke'] & last_names['kramer']) > grades[1.7])
-# the `and` above is a short form for the 3 following relations:
+# the `&` above is a short form for the 3 following relations:
 # model.relate(names['anke'] > grades[1.7])
 # model.relate(last_names['kramer'] > grades[1.7])
 # model.relate(names['anke'] != last_names['kramer'])
